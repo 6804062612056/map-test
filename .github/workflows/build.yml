@@ -25,35 +25,50 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: "3.11"
 
 
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
-        distribution: 'temurin'
+        java-version: "17"
+        distribution: "temurin"
 
 
-    - name: Install dependencies
+    - name: Accept Android SDK licenses
+      run: |
+        yes | sdkmanager --licenses || true
+
+
+    - name: Install Android SDK packages
+      run: |
+        sdkmanager \
+          "platform-tools" \
+          "platforms;android-33" \
+          "build-tools;35.0.0"
+
+
+    - name: Install Linux dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          automake \
+          libltdl-dev
+
+
+    - name: Install Buildozer
       run: |
         pip install --upgrade pip
         pip install buildozer
         pip install cython==0.29.37
 
 
-    - name: Install Linux dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y automake libltdl-dev
-
-
-    - name: Clean Buildozer cache
+    - name: Clean old cache
       run: |
         rm -rf ~/.buildozer
 
 
-    - name: Build Debug APK
+    - name: Build APK
       run: |
         buildozer android debug
 
@@ -61,5 +76,5 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: apk
+        name: map-apk
         path: bin/*.apk
