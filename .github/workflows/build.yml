@@ -1,71 +1,52 @@
-name: Build APK
+on: [push, pull_request]
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+env:
+  PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: 0
 
+name: Android Integration
 jobs:
-  build:
-    runs-on: ubuntu-22.04
-
+  Integration:
+    strategy:
+      matrix:
+        os:
+          - 'ubuntu-latest'
+          - 'macos-latest'
+    runs-on: ${{ matrix.os }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Install dependencies
+    - name: Setup Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.x'
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    - uses: actions/checkout@v7
+    - name: Setup environment
+      run: |
+        pip install .
+    - run: buildozer --help
+    - run: buildozer init
+    - name: SDK, NDK, and p4a download
+      run: |
+        sed -i.bak "s/# android.accept_sdk_license = False/android.accept_sdk_license = True/" buildozer.spec
+        sed -i.bak "s/#p4a.branch = master/p4a.branch = develop/" buildozer.spec
+        buildozer android p4a -- --help
+    # Install OS specific dependencies
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      # Required by some p4a recipes, but not
+      # installed by p4a on Linux.
       run: |
         sudo apt update
-        sudo apt install -y \
-          python3-pip \
-          python3-setuptools \
-          python3-venv \
-          git \
-          zip \
-          unzip \
-          openjdk-17-jdk \
-          wget
-
-    - name: Setup Java 17
+        sudo apt -y install automake libltdl-dev
+    - name: Debug Build
       run: |
-        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-        echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
-        java -version
-
-    - name: Install Android SDK Command Line Tools
+        touch main.py
+        buildozer android debug
+    - name: Release Build (aab)
       run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools
-
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-
-        unzip -q commandlinetools-linux-11076708_latest.zip -d $HOME/android-sdk/cmdline-tools
-
-        mv $HOME/android-sdk/cmdline-tools/cmdline-tools \
-           $HOME/android-sdk/cmdline-tools/latest
-
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-
-    - name: Accept Android licenses
-      run: |
-        yes | sdkmanager --licenses
-        sdkmanager \
-          "platform-tools" \
-          "platforms;android-35" \
-          "build-tools;35.0.0"
-
-    - name: Install Buildozer
-      run: |
-        pip3 install --user buildozer cython==0.29.36
-
-    - name: Build APK
-      run: |
-        yes | ~/.local/bin/buildozer android debug
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk
-        path: bin/*.apk
+        touch main.py
+        export BUILDOZER_ALLOW_ORG_TEST_DOMAIN=1
+        buildozer android release
