@@ -1,41 +1,48 @@
 [app]
 
-# (str) Title of your application
+# Application name
 title = map
 
-# (str) Package name
+# Package name (ต้องเป็นตัวเล็ก ไม่มีขีด)
 package.name = map
 
-# (str) Package domain
+# ต้องเป็น domain จริงรูปแบบ reverse domain
 package.domain = com.guy
 
-# (str) Source code directory
+
+# Source
 source.dir = .
 
-# (list) Source files to include
+
+# Include files
 source.include_exts = py,kv,png,jpg,atlas,txt
 
-# (str) Application version
+
+# Version
 version = 1.0.0
 android.numeric_version = 10000
 
-# (list) Requirements
+
+# Python + libraries
 requirements = python3==3.11,kivy==2.3.1,kivy_garden.mapview,plyer
 
-# Python version สำหรับ python-for-android
+
+# Python version
 p4a.python_version = 3.11
 
-# GPS Permission
-android.permissions = ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION
 
-# (str) Supported orientation
+# Android permissions
+android.permissions = INTERNET,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION
+
+
+# Orientation
 orientation = portrait
 
-# (bool) Fullscreen
+
+# Fullscreen
 fullscreen = 0
 
 
 [buildozer]
 
-# (int) Log level
 log_level = 2
