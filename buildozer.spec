@@ -9,7 +9,6 @@ package.name = map
 # (str) Package domain
 package.domain = com.guy
 
-
 # (str) Source code directory
 source.dir = .
 
@@ -21,7 +20,12 @@ version = 1.0.0
 android.numeric_version = 10000
 
 # (list) Requirements
-requirements = python3,kivy,kivy_garden.mapview,plyer
+requirements = python3==3.11,kivy==2.3.1,kivy_garden.mapview,plyer
+
+# Python version สำหรับ python-for-android
+p4a.python_version = 3.11
+
+# GPS Permission
 android.permissions = ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION
 
 # (str) Supported orientation
