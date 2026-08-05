@@ -1,72 +1,105 @@
-from kivy.config import Config
-
-Config.set('graphics', 'width', '360')
-Config.set('graphics', 'height', '800')
-
 from kivy.app import App
 from kivy.clock import Clock
-from kivy_garden.mapview import MapView, MapMarker, MapSource
-from plyer import gps
+from kivy.uix.floatlayout import FloatLayout
+
+from kivy_garden.mapview import MapView, MapMarker
+from plyer import gps, compass
+
+from kivy.graphics import PushMatrix, PopMatrix, Rotate
 
 
-class GPSMarker(MapMarker):
-    pass
+# 🔥 Marker ลูกศร (หมุนได้)
+class ArrowMarker(MapMarker):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.angle = 0
+
+    def set_angle(self, angle):
+        self.angle = angle
+        self.canvas.before.clear()
+        with self.canvas.before:
+            PushMatrix()
+            Rotate(angle=self.angle, origin=self.center)
+        self.canvas.after.clear()
+        with self.canvas.after:
+            PopMatrix()
 
 
-class MapApp(App):
+class MapScreen(FloatLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-    def build(self):
+        # 🗺️ Map เริ่มต้น (Bangkok)
+        self.map = MapView(zoom=15, lat=13.736717, lon=100.523186)
+        self.add_widget(self.map)
 
-        self.map = MapView(
-            zoom=16,
-            lat=13.7563,
-            lon=100.5018
-        )
+        self.marker = None  # ❗ ยังไม่สร้างจนกว่า GPS จะมา
 
-        self.marker = GPSMarker(
-            lat=13.7563,
-            lon=100.5018
-        )
-
-        self.map.add_marker(self.marker)
-
-        # เริ่ม GPS
+        # 📍 GPS
         try:
-            gps.configure(
-                on_location=self.update_location,
-                on_status=self.gps_status
-            )
+            gps.configure(on_location=self.on_location)
+            gps.start(minTime=1000, minDistance=1)
+        except:
+            print("GPS not supported")
 
-            gps.start(
-                minTime=1000,
-                minDistance=1
-            )
+        # 🧭 Compass
+        try:
+            compass.enable()
+        except:
+            print("Compass not supported")
 
-        except Exception as e:
-            print(e)
-
-        return self.map
+        # 🔄 update ทุก 0.5 วิ
+        Clock.schedule_interval(self.update, 0.5)
 
 
-    def update_location(self, **kwargs):
-
+    # 📍 เมื่อ GPS ได้ตำแหน่ง
+    def on_location(self, **kwargs):
         lat = kwargs['lat']
         lon = kwargs['lon']
 
         print("GPS:", lat, lon)
 
-        # ย้าย marker
-        self.marker.lat = lat
-        self.marker.lon = lon
+        # สร้าง marker ครั้งแรก
+        if not self.marker:
+            self.marker = ArrowMarker(
+                lat=lat,
+                lon=lon,
+                source="arrow.png"  # 👈 ต้องมีไฟล์นี้
+            )
+            self.map.add_marker(self.marker)
+        else:
+            self.marker.lat = lat
+            self.marker.lon = lon
 
-        # เลื่อนแผนที่ตามตำแหน่ง
+        # เลื่อน map ตาม
         self.map.center_on(lat, lon)
 
 
-    def gps_status(self, stype, status):
-        print(stype, status)
+    # 🧭 หมุนลูกศรตามทิศ
+    def update(self, dt):
+        try:
+            heading = compass.orientation
+            if heading is not None and self.marker:
+                self.marker.set_angle(heading)
+        except:
+            pass
 
+
+class MainApp(App):
+    def build(self):
+        return MapScreen()
+
+    def on_start(self):
+        # 🔐 ขอ permission (Android เท่านั้น)
+        try:
+            from android.permissions import request_permissions, Permission
+            request_permissions([
+                Permission.ACCESS_FINE_LOCATION,
+                Permission.ACCESS_COARSE_LOCATION
+            ])
+        except:
+            pass
 
 
 if __name__ == "__main__":
-    MapApp().run()
+    MainApp().run()
