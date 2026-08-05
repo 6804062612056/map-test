@@ -10,7 +10,7 @@ source.include_exts = py,kv,png,jpg,jpeg,atlas,txt,json
 version = 1.0.0
 android.numeric_version = 10000
 
-requirements = python3,kivy==2.3.1,mapview,plyer,requests,certifi
+requirements = python3,kivy==2.3.1,plyer,requests,certifi
 
 android.api = 33
 android.minapi = 24
