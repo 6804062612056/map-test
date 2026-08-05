@@ -2,32 +2,24 @@ name: Build APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
-
 
 env:
   PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: 0
 
-
 jobs:
   build:
-
     runs-on: ubuntu-22.04
 
-
     steps:
-
     - name: Checkout
       uses: actions/checkout@v4
-
 
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
-
 
     - name: Setup Java
       uses: actions/setup-java@v4
@@ -35,57 +27,43 @@ jobs:
         java-version: "17"
         distribution: "temurin"
 
-
-    # เพิ่ม Android SDK PATH
-    - name: Setup Android SDK
-      run: |
-        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-        echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-
-
-    # รับ license
-    - name: Accept Android licenses
-      run: |
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-
-    # ลง SDK ที่ Buildozer ต้องใช้
-    - name: Install Android packages
-      run: |
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-        "platform-tools" \
-        "platforms;android-33" \
-        "build-tools;35.0.0"
-
-
-    - name: Install Linux dependencies
+    # 🔥 ติดตั้ง dependencies ครบ
+    - name: Install system dependencies
       run: |
         sudo apt update
         sudo apt install -y \
-          automake \
-          libltdl-dev \
+          build-essential \
+          git \
+          zip \
+          unzip \
+          openjdk-17-jdk \
+          python3-pip \
           libffi-dev \
-          libssl-dev
+          libssl-dev \
+          libltdl-dev \
+          zlib1g-dev
 
-
+    # 🔥 ติดตั้ง Buildozer + Cython
     - name: Install Buildozer
       run: |
-        python -m pip install --upgrade pip
-        pip install buildozer
-        pip install cython==0.29.37
+        pip install --upgrade pip
+        pip install buildozer cython==0.29.37
 
+    # 🔥 Cache build (สำคัญมาก)
+    - name: Cache buildozer
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.buildozer
+          .buildozer
+        key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
 
-    - name: Clean Buildozer cache
-      run: |
-        rm -rf ~/.buildozer
-
-
+    # 🔥 Build APK
     - name: Build APK
       run: |
         buildozer android debug
 
-
+    # 📦 Upload
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
