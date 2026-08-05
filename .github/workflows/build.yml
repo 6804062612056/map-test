@@ -13,59 +13,38 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.11"
+        python-version: "3.10"   # 🔥 เปลี่ยนจาก 3.11
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: "17"
-        distribution: "temurin"
-
-    # 🔥 ติดตั้ง dependencies ครบ
-    - name: Install system dependencies
+    - name: Install dependencies
       run: |
         sudo apt update
         sudo apt install -y \
           build-essential \
-          git \
-          zip \
-          unzip \
+          git zip unzip \
           openjdk-17-jdk \
-          python3-pip \
           libffi-dev \
           libssl-dev \
           libltdl-dev \
           zlib1g-dev
 
-    # 🔥 ติดตั้ง Buildozer + Cython
-    - name: Install Buildozer
+    - name: Install buildozer
       run: |
         pip install --upgrade pip
         pip install buildozer cython==0.29.37
 
-    # 🔥 Cache build (สำคัญมาก)
-    - name: Cache buildozer
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.buildozer
-          .buildozer
-        key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+    - name: Clean
+      run: rm -rf .buildozer ~/.buildozer
 
-    # 🔥 Build APK
-    - name: Build APK
-      run: |
-        buildozer android debug
+    - name: Build
+      run: buildozer -v android debug
 
-    # 📦 Upload
-    - name: Upload APK
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: map-apk
+        name: apk
         path: bin/*.apk
